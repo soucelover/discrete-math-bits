@@ -5,13 +5,16 @@
 #include <unordered_map>
 #include <vector>
 
-class Base {
+template <typename T>
+concept Numeric = std::is_arithmetic_v<T>;
+
+template <Numeric FreqT> class Base {
 
 protected:
-  Base(double frequency) : frequency(frequency) {}
+  Base(FreqT frequency) : frequency(frequency) {}
 
 public:
-  const double frequency;
+  const FreqT frequency;
 
   virtual ~Base() {};
 
@@ -20,7 +23,9 @@ public:
                 const std::vector<bool> &prefix) = 0;
 };
 
-class Node : public Base {
+template <Numeric FreqT> class Node : public Base<FreqT> {
+  using Base = Base<FreqT>;
+
   const std::shared_ptr<Base> left;
   const std::shared_ptr<Base> right;
 
@@ -31,14 +36,18 @@ public:
   void extract_codes(std::unordered_map<const char *, std::vector<bool>> &dst,
                      const std::vector<bool> &prefix) override {
     std::vector<bool> child_pref = prefix;
+
     child_pref.push_back(false);
     left->extract_codes(dst, child_pref);
+
     child_pref.back() = true;
     right->extract_codes(dst, child_pref);
   }
 };
 
-class Leaf : public Base {
+template <Numeric FreqT> class Leaf : public Base<FreqT> {
+  using Base = Base<FreqT>;
+
   const char *const key;
 
 public:
@@ -55,9 +64,10 @@ public:
   }
 };
 
+template <Numeric FreqT>
 inline size_t
-find_insertion_index(const std::vector<std::shared_ptr<Base>> &pairs,
-                     std::shared_ptr<Base> node) {
+find_insertion_index(const std::vector<std::shared_ptr<FreqT>> &pairs,
+                     std::shared_ptr<FreqT> node) {
   if (pairs.empty()) {
     return 0;
   }
@@ -78,9 +88,14 @@ find_insertion_index(const std::vector<std::shared_ptr<Base>> &pairs,
   return l;
 }
 
-inline void
-build_huffman_code(const std::unordered_map<const char *, double> &src,
-                   std::unordered_map<const char *, std::vector<bool>> &dst) {
+template <Numeric FreqT>
+void build_huffman_code(
+    const std::unordered_map<const char *, FreqT> &src,
+    std::unordered_map<const char *, std::vector<bool>> &dst) {
+  using Base = Base<FreqT>;
+  using Node = Node<FreqT>;
+  using Leaf = Leaf<FreqT>;
+
   if (!dst.empty()) {
     throw std::invalid_argument("dst must be an empty unordered map.");
   }

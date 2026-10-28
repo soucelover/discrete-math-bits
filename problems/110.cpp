@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-static const std::unordered_map<const char *, double> english_letters = {
+static const std::unordered_map<const char *, size_t> english_letters = {
     {"а", 40487008}, {"б", 8051767},  {"в", 22930719}, {"г", 8564640},
     {"д", 15052118}, {"е", 42691213}, {"ё", 184928},   {"ж", 4746916},
     {"з", 8329904},  {"и", 37153142}, {"й", 6106262},  {"к", 17653469},
