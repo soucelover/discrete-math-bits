@@ -8,7 +8,7 @@
 template <typename T>
 concept Numeric = std::is_arithmetic_v<T>;
 
-template <Numeric FreqT> class Base {
+template <typename KeyT, Numeric FreqT> class Base {
 
 protected:
   Base(FreqT frequency) : frequency(frequency) {}
@@ -18,13 +18,12 @@ public:
 
   virtual ~Base() {};
 
-  virtual void
-  extract_codes(std::unordered_map<const char *, std::vector<bool>> &dst,
-                const std::vector<bool> &prefix) = 0;
+  virtual void extract_codes(std::unordered_map<KeyT, std::vector<bool>> &dst,
+                             const std::vector<bool> &prefix) = 0;
 };
 
-template <Numeric FreqT> class Node : public Base<FreqT> {
-  using Base = Base<FreqT>;
+template <typename KeyT, Numeric FreqT> class Node : public Base<KeyT, FreqT> {
+  using Base = Base<KeyT, FreqT>;
 
   const std::shared_ptr<Base> left;
   const std::shared_ptr<Base> right;
@@ -33,7 +32,7 @@ public:
   Node(std::shared_ptr<Base> left, std::shared_ptr<Base> right)
       : left(left), right(right), Base(left->frequency + right->frequency) {}
 
-  void extract_codes(std::unordered_map<const char *, std::vector<bool>> &dst,
+  void extract_codes(std::unordered_map<KeyT, std::vector<bool>> &dst,
                      const std::vector<bool> &prefix) override {
     std::vector<bool> child_pref = prefix;
 
@@ -45,15 +44,15 @@ public:
   }
 };
 
-template <Numeric FreqT> class Leaf : public Base<FreqT> {
-  using Base = Base<FreqT>;
+template <typename KeyT, Numeric FreqT> class Leaf : public Base<KeyT, FreqT> {
+  using Base = Base<KeyT, FreqT>;
 
-  const char *const key;
+  const KeyT key;
 
 public:
-  Leaf(const char *key, double frequency) : key(key), Base(frequency) {}
+  Leaf(KeyT key, double frequency) : key(key), Base(frequency) {}
 
-  void extract_codes(std::unordered_map<const char *, std::vector<bool>> &dst,
+  void extract_codes(std::unordered_map<KeyT, std::vector<bool>> &dst,
                      const std::vector<bool> &prefix) override {
     if (prefix.empty()) {
       dst[key] = {0};
@@ -64,10 +63,10 @@ public:
   }
 };
 
-template <Numeric FreqT>
-inline size_t
-find_insertion_index(const std::vector<std::shared_ptr<FreqT>> &pairs,
-                     std::shared_ptr<FreqT> node) {
+template <typename KeyT, Numeric FreqT>
+inline size_t find_insertion_index(
+    const std::vector<std::shared_ptr<Base<KeyT, FreqT>>> &pairs,
+    std::shared_ptr<Base<KeyT, FreqT>> node) {
   if (pairs.empty()) {
     return 0;
   }
@@ -88,13 +87,12 @@ find_insertion_index(const std::vector<std::shared_ptr<FreqT>> &pairs,
   return l;
 }
 
-template <Numeric FreqT>
-void build_huffman_code(
-    const std::unordered_map<const char *, FreqT> &src,
-    std::unordered_map<const char *, std::vector<bool>> &dst) {
-  using Base = Base<FreqT>;
-  using Node = Node<FreqT>;
-  using Leaf = Leaf<FreqT>;
+template <typename KeyT, Numeric FreqT>
+void build_huffman_code(const std::unordered_map<KeyT, FreqT> &src,
+                        std::unordered_map<KeyT, std::vector<bool>> &dst) {
+  using Base = Base<KeyT, FreqT>;
+  using Node = Node<KeyT, FreqT>;
+  using Leaf = Leaf<KeyT, FreqT>;
 
   if (!dst.empty()) {
     throw std::invalid_argument("dst must be an empty unordered map.");
@@ -122,7 +120,8 @@ void build_huffman_code(
     pairs.erase(pairs.begin(), pairs.begin() + 2);
 
     std::shared_ptr<Node> node = std::make_shared<Node>(left, right);
-    const auto iter = pairs.begin() + find_insertion_index(pairs, node);
+    const auto iter =
+        pairs.begin() + find_insertion_index<KeyT, FreqT>(pairs, node);
 
     pairs.insert(iter, node);
   }
