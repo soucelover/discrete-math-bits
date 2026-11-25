@@ -1,4 +1,6 @@
 #include "dm_bits/huffman_code.hpp"
+#include "dm_problems/problem.hpp"
+#include "dm_problems/solutions.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -10,6 +12,7 @@
 #include <vector>
 
 namespace std {
+
 template <> struct hash<std::vector<char>> {
   size_t operator()(const std::vector<char> &data) const {
     size_t hash = 0xcbf29ce484222325ULL; // FNV offset basis
@@ -23,7 +26,10 @@ template <> struct hash<std::vector<char>> {
     return hash;
   }
 };
+
 } // namespace std
+
+namespace {
 
 std::string str_from_vector(const std::vector<bool> &vec) {
   std::string out(vec.size(), '0');
@@ -89,7 +95,11 @@ bool output_result(
   return true;
 }
 
-int main() {
+} // namespace
+
+namespace dm_problems {
+
+const Problem *const problem_111 = new InlineProblem([]() -> int {
   std::unordered_map<std::vector<char>, size_t> chunks;
 
   if (!get_chunks("./files/zen.bmp", chunks)) {
@@ -105,4 +115,8 @@ int main() {
     std::cerr << "ERROR: Couldn't open the output file.";
     return 1;
   }
-}
+
+  return 0;
+});
+
+} // namespace dm_problems

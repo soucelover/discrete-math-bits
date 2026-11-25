@@ -1,9 +1,13 @@
 #include "dm_bits/huffman_code.hpp"
+#include "dm_problems/problem.hpp"
+#include "dm_problems/solutions.hpp"
 #include <cstddef>
 #include <iostream>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+namespace {
 
 static const std::unordered_map<const char *, double> english_letters = {
     {"a", 0.082},  {"b", 0.015},  {"c", 0.028}, {"d", 0.043},  {"e", 0.127},
@@ -23,8 +27,11 @@ std::string str_from_vector(const std::vector<bool> &vec) {
   return out;
 }
 
-int main() {
+} // namespace
 
+namespace dm_problems {
+
+const Problem *const problem_109 = new InlineProblem([]() -> int {
   std::unordered_map<const char *, std::vector<bool>> dst;
 
   build_huffman_code(english_letters, dst);
@@ -33,4 +40,8 @@ int main() {
     std::cout << pair.first << " : " << str_from_vector(pair.second)
               << std::endl;
   }
-}
+
+  return 0;
+});
+
+} // namespace dm_problems

@@ -9,10 +9,13 @@ add_executable(discrete-math-bits)
 
 target_sources(discrete-math-bits
   PRIVATE
+    src/main.cpp
+    src/problems/109.cpp
+    src/problems/110.cpp
     src/problems/111.cpp
+)
 
-  PUBLIC
-    FILE_SET public_headers
-    TYPE HEADERS
-    BASE_DIRS include
+target_include_directories(discrete-math-bits
+  PRIVATE
+    include
 )
