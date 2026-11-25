@@ -1,4 +1,4 @@
-#include "dm_bits/huffman_code.hpp"
+#include "dm_algorithms/huffman_code.hpp"
 #include "dm_problems/problem.hpp"
 #include "dm_problems/solutions.hpp"
 #include <cstddef>
