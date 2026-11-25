@@ -1,3 +1,6 @@
 {
-    "C_Cpp.default.cppStandard": "c++23"
+    "C_Cpp.default.cppStandard": "c++23",
+    "cmake.debugConfig": {
+        "cwd": "${workspaceFolder}"
+    }
 }
