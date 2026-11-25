@@ -1,4 +1,4 @@
-#include "huffman_code.hpp"
+#include "dm_bits/huffman_code.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -92,7 +92,7 @@ bool output_result(
 int main() {
   std::unordered_map<std::vector<char>, size_t> chunks;
 
-  if (!get_chunks("./problems/zen.bmp", chunks)) {
+  if (!get_chunks("./files/zen.bmp", chunks)) {
     std::cerr << "ERROR: Couldn't open the input file.";
     return 1;
   }

@@ -1,4 +1,4 @@
-#include "huffman_code.hpp"
+#include "dm_bits/huffman_code.hpp"
 #include <cstddef>
 #include <iostream>
 #include <string>
