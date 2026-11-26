@@ -109,7 +109,7 @@ const Problem *const problem_111 = new InlineProblem([]() -> int {
 
   std::unordered_map<std::vector<char>, std::vector<bool>> dst;
 
-  build_huffman_code(chunks, dst);
+  dm_algorithms::build_huffman_code(chunks, dst);
 
   if (!output_result("./output.txt", chunks, dst)) {
     std::cerr << "ERROR: Couldn't open the output file.";

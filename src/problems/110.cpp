@@ -37,7 +37,7 @@ namespace dm_problems {
 const Problem *const problem_110 = new InlineProblem([]() -> int {
   std::unordered_map<const char *, std::vector<bool>> dst;
 
-  build_huffman_code(english_letters, dst);
+  dm_algorithms::build_huffman_code(english_letters, dst);
 
   for (auto pair : dst) {
     std::cout << pair.first << " : " << str_from_vector(pair.second)

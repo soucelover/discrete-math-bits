@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <vector>
 
+namespace dm_algorithms {
+
 template <typename T>
 concept Numeric = std::is_arithmetic_v<T>;
 
@@ -128,3 +130,5 @@ void build_huffman_code(const std::unordered_map<KeyT, FreqT> &src,
 
   pairs[0]->extract_codes(dst, {});
 }
+
+} // namespace dm_algorithms
