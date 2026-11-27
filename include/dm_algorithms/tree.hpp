@@ -76,4 +76,95 @@ protected:
   }
 };
 
+template <typename T, typename ParentT = T,
+          typename Allocator = std::allocator<T>>
+class BinaryTreeBase : public _AnyTreeBase<T, ParentT, Allocator> {
+private:
+  using Base = _AnyTreeBase<T, ParentT, Allocator>;
+
+protected:
+  Base::pointer _left = nullptr;
+  Base::pointer _right = nullptr;
+
+public:
+  BinaryTreeBase() : BinaryTreeBase(Allocator()) {}
+  explicit BinaryTreeBase(const Allocator &allocator) : Base(allocator) {}
+  BinaryTreeBase(const BinaryTreeBase &other) : Base(other) {
+    if (other._left != nullptr) {
+      this->_left = _copy_child(other._left);
+    }
+
+    if (other._right != nullptr) {
+      this->_right = _copy_child(other._right);
+    }
+  }
+
+  BinaryTreeBase(BinaryTreeBase &&other) : Base(std::move(other)) {
+    if (other._left != nullptr) {
+      _move_child(other._left, this->_left);
+    }
+
+    if (other._right != nullptr) {
+      _move_child(other._right, this->_right);
+    }
+  }
+
+  ~BinaryTreeBase() {
+    if (_left != nullptr) {
+      delete_child(_left);
+    }
+
+    if (_right != nullptr) {
+      delete_child(_right);
+    }
+  }
+
+  Base::pointer left() { return _left; }
+  Base::const_pointer left() const { return _left; }
+
+  Base::pointer right() { return _right; }
+  Base::const_pointer right() const { return _right; }
+
+  bool is_leaf() const { return _left == nullptr && _right == nullptr; }
+  bool is_full_node() const { return _left != nullptr && _right != nullptr; }
+
+  template <typename... _Args> Base::pointer emplace_left(_Args &&...args) {
+    if (_left == nullptr) {
+      return _left = _create_child(args...);
+    }
+
+    _replace_child(_left, args...);
+    return _left;
+  }
+
+  template <typename... _Args> Base::pointer emplace_right(_Args &&...args) {
+    if (_right == nullptr) {
+      return _right = _create_child(args...);
+    }
+
+    _replace_child(_right, args...);
+    return _right;
+  }
+
+  void remove_left() {
+    if (_left == nullptr) {
+      return;
+    }
+
+    _delete_child(_left);
+    _left = nullptr;
+  }
+
+  void remove_right() {
+    if (_right == nullptr) {
+      return;
+    }
+
+    _delete_child(_right);
+    _right = nullptr;
+  }
+};
+
+class BinaryTree : public BinaryTreeBase<BinaryTree> {};
+
 } // namespace dm_algorithms
