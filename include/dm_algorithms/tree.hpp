@@ -28,6 +28,12 @@ protected:
   parent_pointer _parent = nullptr;
 
 public:
+  _AnyTreeBase() : _AnyTreeBase(Alloc()) {}
+  explicit _AnyTreeBase(const allocator_type &allocator) : _alloc(allocator) {}
+
+  _AnyTreeBase(const _AnyTreeBase &other) = default;
+  _AnyTreeBase(_AnyTreeBase &&other) = default;
+
   parent_pointer parent() { return _parent; }
   const_parent_pointer parent() const { return _parent; }
   bool has_parent() const { return _parent != nullptr; }
@@ -47,6 +53,21 @@ protected:
     _alloc_traits::destroy(_alloc, ptr);
     _alloc_traits::construct(_alloc, ptr, args...);
     ptr->_parent = this;
+  }
+
+  pointer _copy_child(const_pointer ptr) const {
+    const pointer copy_ptr = _alloc_traits::allocate(_alloc, 1);
+
+    _alloc_traits::construct(_alloc, copy_ptr, *ptr);
+    copy_ptr->_parent = this;
+
+    return copy_ptr;
+  }
+
+  void _move_child(pointer &src, pointer &dst) const {
+    dst = src;
+    src = nullptr;
+    dst->_parent = this;
   }
 
   void _delete_child(pointer ptr) const {
