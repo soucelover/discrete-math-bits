@@ -90,8 +90,8 @@ private:
   using _Iter = BinaryTreeIterator<TreeT, order>;
 
 public:
-  using iterator_category = std::forward_iterator_tag;
-  using iterator_concept = std::forward_iterator_tag;
+  using iterator_category = std::bidirectional_iterator_tag;
+  using iterator_concept = std::bidirectional_iterator_tag;
   using difference_type = std::ptrdiff_t;
   using value_type = std::remove_cv_t<TreeT>;
   using pointer = TreeT *;
@@ -277,6 +277,10 @@ public:
   using iterator = BinaryTreeIterator<T, order>;
   template <DFSOrder order = DFSOrder::PRE>
   using const_iterator = BinaryTreeIterator<const T, order>;
+  template <DFSOrder order = DFSOrder::PRE>
+  using reverse_iterator = std::reverse_iterator<iterator<order>>;
+  template <DFSOrder order = DFSOrder::PRE>
+  using const_reverse_iterator = std::reverse_iterator<const_iterator<order>>;
 
 protected:
   Base::pointer _left = nullptr;
