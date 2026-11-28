@@ -1,5 +1,7 @@
+#include <cassert>
 #include <concepts>
 #include <cstddef>
+#include <cstdlib>
 #include <iterator>
 #include <memory>
 #include <type_traits>
@@ -147,6 +149,14 @@ public:
   pointer operator->() const { return current; }
 
   _Iter &operator++() {
+    assert(root != nullptr && "incrementing default-constructed tree iterator");
+
+    if (current == nullptr) {
+      assert(false && "incrementing tree's end() iterator");
+      // loop-through on release builds
+      current = _descend(root);
+    }
+
     // Step-down
     if constexpr (order == DFSOrder::PRE) {
       if (current->has_left()) {
@@ -197,6 +207,8 @@ public:
   }
 
   _Iter &operator--() {
+    assert(root != nullptr && "incrementing default-constructed tree iterator");
+
     if (current == nullptr) {
       current = _last(root);
       return *this;
@@ -241,7 +253,9 @@ public:
       }
     }
 
-    // This codepath is hit only when decrementing begin()
+    assert(false && "decrementing tree's begin() iterator");
+    // loop-through on release builds
+    current = nullptr;
     return *this;
   }
 
