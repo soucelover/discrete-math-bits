@@ -136,72 +136,47 @@ public:
 
   pointer operator->() const { return current; }
 
-  _Iter &operator++()
-    requires(order == DFSOrder::PRE)
-  {
-    if (current->has_left()) {
-      current = current->left();
-      return *this;
-    }
+  _Iter &operator++() {
+    // Step-down
+    if constexpr (order == DFSOrder::PRE) {
+      if (current->has_left()) {
+        current = current->left();
+        return *this;
+      }
 
-    if (current->has_right()) {
-      current = current->right();
-      return *this;
-    }
-
-    while (current != root) {
-      const pointer parent = current->parent();
-      const bool from_left = current->is_left();
-      current = parent;
-
-      if (from_left && current->has_right()) {
+      if (current->has_right()) {
         current = current->right();
         return *this;
       }
-    }
-
-    current = nullptr;
-    return *this;
-  }
-
-  _Iter &operator++()
-    requires(order == DFSOrder::IN)
-  {
-    if (current->has_right()) {
-      current = _descend(current->right());
-      return *this;
-    }
-
-    while (current != root) {
-      const pointer parent = current->parent();
-      const bool from_left = current->is_left();
-      current = parent;
-
-      if (from_left) {
+    } else if constexpr (order == DFSOrder::IN) {
+      if (current->has_right()) {
+        current = _descend(current->right());
         return *this;
       }
     }
 
+    // Climb-up
+    while (current != root) {
+      const bool from_left = current->is_left();
+      current = current->parent();
+
+      if constexpr (order == DFSOrder::IN) {
+        if (from_left) {
+          return *this;
+        }
+      } else {
+        if (from_left && current->has_right()) {
+          current = _descend(current->right());
+          return *this;
+        }
+
+        if constexpr (order == DFSOrder::POST) {
+          return *this;
+        }
+      }
+    }
+
     current = nullptr;
-    return *this;
-  }
-
-  _Iter &operator++()
-    requires(order == DFSOrder::POST)
-  {
-    if (current == root) {
-      current = nullptr;
-      return *this;
-    }
-
-    const pointer parent = current->parent();
-    const bool from_left = current->is_left();
-    current = parent;
-
-    if (from_left && current->has_right()) {
-      current = _descend(current->right());
-    }
-
     return *this;
   }
 
