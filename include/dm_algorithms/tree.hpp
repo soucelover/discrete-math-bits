@@ -107,11 +107,21 @@ private:
       }
     } else if constexpr (order == DFSOrder::POST) {
       while (!node->is_leaf()) {
-        if (node->has_left()) {
-          node = node->left();
-        } else {
-          node = node->right();
-        }
+        node = node->has_left() ? node->left() : node->right();
+      }
+    }
+
+    return node;
+  }
+
+  static pointer _last(pointer node) {
+    if constexpr (order == DFSOrder::IN) {
+      while (node->has_right()) {
+        node = node->right();
+      }
+    } else if constexpr (order == DFSOrder::PRE) {
+      while (!node->is_leaf()) {
+        node = node->has_right() ? node->right() : node->left();
       }
     }
 
@@ -166,7 +176,7 @@ public:
         }
       } else {
         if (from_left && current->has_right()) {
-          current = _descend(current->right());
+          current = _descend(current->right()); // identity for POST
           return *this;
         }
 
@@ -183,6 +193,61 @@ public:
   _Iter operator++(int) {
     _Iter tmp = *this;
     ++(*this);
+    return tmp;
+  }
+
+  _Iter &operator--() {
+    if (current == nullptr) {
+      current = _last(root);
+      return *this;
+    }
+
+    // Step-down
+    if constexpr (order == DFSOrder::POST) {
+      if (current->has_right()) {
+        current = current->right();
+        return *this;
+      }
+
+      if (current->has_left()) {
+        current = current->left();
+        return *this;
+      }
+    } else if constexpr (order == DFSOrder::IN) {
+      if (current->has_left()) {
+        current = _last(current->left());
+        return *this;
+      }
+    }
+
+    // Climb-up
+    while (current != root) {
+      const bool from_right = current->is_right();
+      current = current->parent();
+
+      if constexpr (order == DFSOrder::IN) {
+        if (from_right) {
+          return *this;
+        }
+      } else {
+        if (from_right && current->has_left()) {
+          current = _last(current->left()); // identity for POST
+          return *this;
+        }
+
+        if constexpr (order == DFSOrder::PRE) {
+          return *this;
+        }
+      }
+    }
+
+    // This codepath is hit only when decrementing begin()
+    return *this;
+  }
+
+  _Iter operator--(int) {
+    _Iter tmp = *this;
+    --(*this);
     return tmp;
   }
 };
