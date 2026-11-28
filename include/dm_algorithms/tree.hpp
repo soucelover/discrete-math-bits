@@ -55,11 +55,12 @@ protected:
     ptr->_parent = this;
   }
 
-  pointer _copy_child(const_pointer ptr) const {
-    const pointer copy_ptr = _alloc_traits::allocate(_alloc, 1);
+  template <typename Self>
+  pointer _copy_child(this Self &&self, const_pointer ptr) {
+    const pointer copy_ptr = _alloc_traits::allocate(self._alloc, 1);
 
-    _alloc_traits::construct(_alloc, copy_ptr, *ptr);
-    copy_ptr->_parent = this;
+    _alloc_traits::construct(self._alloc, copy_ptr, *ptr);
+    copy_ptr->_parent = &self;
 
     return copy_ptr;
   }
