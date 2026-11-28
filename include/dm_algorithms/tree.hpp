@@ -1,5 +1,8 @@
+#include <concepts>
 #include <cstddef>
+#include <iterator>
 #include <memory>
+#include <type_traits>
 
 namespace dm_algorithms {
 
@@ -31,6 +34,7 @@ public:
   _AnyTreeBase() : _AnyTreeBase(Alloc()) {}
   explicit _AnyTreeBase(const allocator_type &allocator) : _alloc(allocator) {}
 
+  // BUG: _parent pointer is copied
   _AnyTreeBase(const _AnyTreeBase &other) = default;
   _AnyTreeBase(_AnyTreeBase &&other) = default;
 
@@ -77,11 +81,147 @@ protected:
   }
 };
 
+enum class DFSOrder { PRE = 0, IN = 1, POST = 2 };
+
+template <typename TreeT, DFSOrder order = DFSOrder::PRE>
+class BinaryTreeIterator {
+private:
+  using _Iter = BinaryTreeIterator<TreeT, order>;
+
+public:
+  using iterator_category = std::forward_iterator_tag;
+  using iterator_concept = std::forward_iterator_tag;
+  using difference_type = std::ptrdiff_t;
+  using value_type = std::remove_cv_t<TreeT>;
+  using pointer = TreeT *;
+  using reference = TreeT &;
+
+protected:
+  pointer current = nullptr;
+
+private:
+  static pointer _descend(pointer node) {
+    if constexpr (order == DFSOrder::IN) {
+      while (node->has_left()) {
+        node = node->left();
+      }
+    } else if constexpr (order == DFSOrder::POST) {
+      while (!node->is_leaf()) {
+        if (node->has_left()) {
+          node = node->left();
+        } else {
+          node = node->right();
+        }
+      }
+    }
+
+    return node;
+  }
+
+public:
+  constexpr BinaryTreeIterator() noexcept = default;
+  explicit constexpr BinaryTreeIterator(std::nullptr_t) noexcept
+      : BinaryTreeIterator() {}
+  explicit BinaryTreeIterator(pointer root) noexcept
+      : current(root != nullptr ? _descend(root) : nullptr) {}
+
+  BinaryTreeIterator(const _Iter &other) = default;
+  BinaryTreeIterator &operator=(const _Iter &other) = default;
+
+  bool operator==(const _Iter &) const = default;
+
+  reference operator*() const { return *current; }
+
+  pointer operator->() const { return current; }
+
+  // BUG: ++ goes out of the subtree
+  _Iter &operator++()
+    requires(order == DFSOrder::PRE)
+  {
+    if (current->has_left()) {
+      current = current->left();
+      return *this;
+    }
+
+    if (current->has_right()) {
+      current = current->right();
+      return *this;
+    }
+
+    while (current->has_parent()) {
+      const pointer parent = current->parent();
+      const bool from_left = current->is_left();
+      current = parent;
+
+      if (from_left && current->has_right()) {
+        current = current->right();
+        return *this;
+      }
+    }
+
+    current = nullptr;
+    return *this;
+  }
+
+  _Iter &operator++()
+    requires(order == DFSOrder::IN)
+  {
+    if (current->has_right()) {
+      current = _descend(current->right());
+      return *this;
+    }
+
+    while (current->has_parent()) {
+      const pointer parent = current->parent();
+      const bool from_left = current->is_left();
+      current = parent;
+
+      if (from_left) {
+        return *this;
+      }
+    }
+
+    current = nullptr;
+    return *this;
+  }
+
+  _Iter &operator++()
+    requires(order == DFSOrder::POST)
+  {
+    if (!current->has_parent()) {
+      current = nullptr;
+      return *this;
+    }
+
+    const pointer parent = current->parent();
+    const bool from_left = current->is_left();
+    current = parent;
+
+    if (from_left && current->has_right()) {
+      current = _descend(current->right());
+    }
+
+    return *this;
+  }
+
+  _Iter operator++(int) {
+    _Iter tmp = *this;
+    ++(*this);
+    return tmp;
+  }
+};
+
 template <typename T, typename ParentT = T,
           typename Allocator = std::allocator<T>>
 class BinaryTreeBase : public _AnyTreeBase<T, ParentT, Allocator> {
 private:
   using Base = _AnyTreeBase<T, ParentT, Allocator>;
+
+public:
+  template <DFSOrder order = DFSOrder::PRE>
+  using iterator = BinaryTreeIterator<T, order>;
+  template <DFSOrder order = DFSOrder::PRE>
+  using const_iterator = BinaryTreeIterator<const T, order>;
 
 protected:
   Base::pointer _left = nullptr;
@@ -120,14 +260,23 @@ public:
     }
   }
 
+  // Children
   Base::pointer left() { return _left; }
   Base::const_pointer left() const { return _left; }
+  bool has_left() const { return _left != nullptr; }
 
   Base::pointer right() { return _right; }
   Base::const_pointer right() const { return _right; }
+  bool has_right() const { return _right != nullptr; }
 
-  bool is_leaf() const { return _left == nullptr && _right == nullptr; }
-  bool is_full_node() const { return _left != nullptr && _right != nullptr; }
+  bool is_leaf() const { return !(has_left() || has_right()); }
+  bool is_full_node() const { return has_left() && has_right(); }
+  bool is_left() const {
+    return this->has_parent() && this == this->parent()->_left;
+  }
+  bool is_right() const {
+    return this->has_parent() && this == this->parent()->_right;
+  }
 
   template <typename... _Args> Base::pointer emplace_left(_Args &&...args) {
     if (_left == nullptr) {
@@ -164,6 +313,34 @@ public:
     _delete_child(_right);
     _right = nullptr;
   }
+
+  // Iterators
+  template <typename Self, DFSOrder order = DFSOrder::PRE>
+  iterator<order> begin(this Self &&self)
+    requires(std::same_as<Self, T>)
+  {
+    return iterator<order>(self);
+  }
+
+  template <typename Self, DFSOrder order = DFSOrder::PRE>
+  iterator<order> end(this Self &&self)
+    requires(std::same_as<Self, T>)
+  {
+    return iterator<order>(nullptr);
+  }
+
+  template <typename Self> Base::size_type size(this Self &&self) {
+    typename Base::size_type sz = 0;
+    const iterator end = self.end();
+
+    for (iterator it = self.begin(); it != end; ++it) {
+      ++sz;
+    }
+
+    return sz;
+  }
+
+  bool empty() { return false; }
 };
 
 class BinaryTree : public BinaryTreeBase<BinaryTree> {};
