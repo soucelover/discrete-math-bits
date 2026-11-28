@@ -34,9 +34,8 @@ public:
   _AnyTreeBase() : _AnyTreeBase(Alloc()) {}
   explicit _AnyTreeBase(const allocator_type &allocator) : _alloc(allocator) {}
 
-  // BUG: _parent pointer is copied
-  _AnyTreeBase(const _AnyTreeBase &other) = default;
-  _AnyTreeBase(_AnyTreeBase &&other) = default;
+  _AnyTreeBase(const _AnyTreeBase &other) : _alloc(other._alloc) {}
+  _AnyTreeBase(_AnyTreeBase &&other) : _alloc(std::move(other._alloc)) {}
 
   parent_pointer parent() { return _parent; }
   const_parent_pointer parent() const { return _parent; }
@@ -98,6 +97,7 @@ public:
 
 protected:
   pointer current = nullptr;
+  pointer root = nullptr;
 
 private:
   static pointer _descend(pointer node) {
@@ -123,7 +123,9 @@ public:
   explicit constexpr BinaryTreeIterator(std::nullptr_t) noexcept
       : BinaryTreeIterator() {}
   explicit BinaryTreeIterator(pointer root) noexcept
-      : current(root != nullptr ? _descend(root) : nullptr) {}
+      : current(root != nullptr ? _descend(root) : nullptr), root(root) {}
+  explicit BinaryTreeIterator(pointer root, std::nullptr_t) noexcept
+      : current(nullptr), root(root) {}
 
   BinaryTreeIterator(const _Iter &other) = default;
   BinaryTreeIterator &operator=(const _Iter &other) = default;
@@ -134,7 +136,6 @@ public:
 
   pointer operator->() const { return current; }
 
-  // BUG: ++ goes out of the subtree
   _Iter &operator++()
     requires(order == DFSOrder::PRE)
   {
@@ -148,7 +149,7 @@ public:
       return *this;
     }
 
-    while (current->has_parent()) {
+    while (current != root) {
       const pointer parent = current->parent();
       const bool from_left = current->is_left();
       current = parent;
@@ -171,7 +172,7 @@ public:
       return *this;
     }
 
-    while (current->has_parent()) {
+    while (current != root) {
       const pointer parent = current->parent();
       const bool from_left = current->is_left();
       current = parent;
@@ -188,7 +189,7 @@ public:
   _Iter &operator++()
     requires(order == DFSOrder::POST)
   {
-    if (!current->has_parent()) {
+    if (current == root) {
       current = nullptr;
       return *this;
     }
@@ -326,7 +327,7 @@ public:
   iterator<order> end(this Self &&self)
     requires(std::same_as<Self, T>)
   {
-    return iterator<order>(nullptr);
+    return iterator<order>(self, nullptr);
   }
 
   template <typename Self> Base::size_type size(this Self &&self) {
